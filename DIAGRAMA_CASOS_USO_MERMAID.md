@@ -1,8 +1,45 @@
-# Diagrama de Casos de Uso - Mermaid (Alternativa)
+# Diagrama de Casos de Uso - Sistema de Reclutamiento de Personal
 
-Puedes visualizar este diagrama en cualquier editor que soporte Mermaid (GitHub, GitLab, Notion, VS Code con extensión Mermaid, etc.)
+Puedes visualizar los diagramas en GitHub, GitLab, Notion o VS Code con extensión Mermaid.
 
-## Opción 1: Diagrama compacto
+---
+
+## Actores
+
+| Actor | Responsabilidades principales |
+|-------|------------------------------|
+| **Gerencia** | Crear requerimientos, realizar entrevista final, seleccionar al candidato ganador |
+| **Recursos Humanos** | Evaluar requerimientos, convocatorias, CVs, entrevista telefónica, contratación y archivo |
+| **Jefe de Área** | Crear requerimientos, entrevista con candidatos, **realizar prueba de aptitud académica** |
+| **Postulante** | Enviar CV y postularse a las convocatorias |
+
+---
+
+## Flujo del Proceso
+
+```
+1. CREAR REQUERIMIENTO (Gerencia / RR.HH. / Jefe de Área)
+        ↓
+2. RR.HH. RECEPCIONA Y EVALÚA → Rechazado: Archivar | Aprobado: Continuar
+        ↓
+3. CREAR CONVOCATORIA → 4. PUBLICAR en foros de empleo
+        ↓
+5. RECEPCIONAR CVs → EVALUAR CVs → Inaptos: Archivar | Aptos: Continuar
+        ↓
+6. ENTREVISTA TELEFÓNICA (RR.HH.) → Inaptos: Archivar | Aptos: Continuar
+        ↓
+7. ENTREVISTA CON JEFE DE ÁREA → Inaptos: Archivar | Aptos: Continuar
+        ↓
+8. PRUEBA DE APTITUD ACADÉMICA (Jefe de Área) → Inaptos: Archivar | Aptos: Continuar
+        ↓
+9. ENTREVISTA CON GERENCIA
+        ↓
+10. GERENCIA SELECCIONA al más apto → 11. CONTRATACIÓN + Archivar no seleccionados
+```
+
+---
+
+## Diagrama 1: Casos de uso por actor
 
 ```mermaid
 flowchart TB
@@ -54,7 +91,7 @@ flowchart TB
     A2 --> UC7
     A2 --> UC8
     A2 --> UC9
-    A2 --> UC11
+    A3 --> UC11
     A2 --> UC14
     A2 --> UC15
     A3 --> UC1
@@ -77,7 +114,9 @@ flowchart TB
     UC13 --> UC15
 ```
 
-## Opción 2: Flujo de proceso (secuencial)
+---
+
+## Diagrama 2: Flujo de proceso (secuencial)
 
 ```mermaid
 flowchart TD
@@ -93,7 +132,7 @@ flowchart TD
     UC7 --> |Inaptos| Arch3[Archivar]
     UC7 --> |Aptos| UC8[8. Entrevista Jefe Área]
     UC8 --> |Inaptos| Arch4[Archivar]
-    UC8 --> |Aptos| UC9[9. Prueba aptitud académica]
+    UC8 --> |Aptos| UC9[9. Prueba aptitud académica<br/>Jefe de Área]
     UC9 --> |Inaptos| Arch5[Archivar]
     UC9 --> |Aptos| UC10[10. Entrevista Gerencia]
     UC10 --> UC11[11. Gerencia selecciona ganador]
@@ -107,6 +146,8 @@ flowchart TD
     Arch4 --> End
     Arch5 --> End
 ```
+
+---
 
 ## Matriz de actores y casos de uso
 
@@ -122,7 +163,7 @@ flowchart TD
 | Archivar CVs inaptos | | ✓ | | |
 | Entrevista telefónica | | ✓ | | |
 | Entrevista jefe de área | | | ✓ | |
-| Prueba aptitud académica | | ✓ | | |
+| Prueba aptitud académica | | | ✓ | |
 | Entrevista gerencia | ✓ | | | |
 | Seleccionar candidato ganador | ✓ | | | |
 | Registrar contratación | | ✓ | | |
