@@ -1,6 +1,18 @@
 # Diagrama de Clases - Sistema de Reclutamiento de Personal
 
-Basado en el diagrama de casos de uso, las entidades del backend y las decisiones de diseño acordadas.
+Basado en la arquitectura del proyecto: **Personal** (backend) + **Personal-frontend** (frontend), con GraphQL como API.
+
+---
+
+## Arquitectura del proyecto
+
+| Capa | Proyecto | Ubicación | Contenido |
+|------|----------|-----------|-----------|
+| **Dominio** | Personal | `src/dominio/entidades/` | RequerimientoPersonal, Empleabilidad, EmpleadoCH, Usuario, etc. |
+| **Aplicación** | Personal | `src/aplicacion/servicios/` | RequerimientoPersonalService, EmpleabilidadService, EmpleadoCHService, etc. |
+| **Infraestructura** | Personal | `src/infraestructura/` | GraphQL resolvers, repositorios MongoDB |
+| **UI + Estado** | Personal-frontend | `src/slices/`, `src/pages/` | requerimientoPersonalSlice, empleabilidadSlice, formularios, Kanban |
+| **API Client** | Personal-frontend | `src/services/` | requerimientoPersonalService (GraphQL), apolloClient |
 
 ---
 
@@ -12,19 +24,23 @@ Basado en el diagrama de casos de uso, las entidades del backend y las decisione
 | **Entrevistas** | **Subclases**: EntrevistaTelefonica, EntrevistaJefeArea, PruebaAptitudAcademica, EntrevistaGerencia |
 | **Evaluación entrevistas** | Guardar **ambos**: puntaje numérico y resultado Apto/Inapto |
 | **CV** | Solo URL (archivo), sin datos estructurados |
-| **Estados RequerimientoPersonal** | Solicitud personal → Aprobación de Gerencia → Convocatoria (y Rechazado, Cancelado, Suspendido) |
+| **Estados RequerimientoPersonal** | Aprobado, Desaprobado, En espera, Archivado |
 | **Empleabilidad** | Se crea **manualmente** cuando RR.HH. registra la contratación (no automático) |
+| **Postulante** | **Entidad nueva** (personas nuevas); no se reutiliza EmpleadoCH |
+| **Estados Postulacion** | Pendiente, Apto, Inapto, En entrevista, Archivado, Seleccionado, Contratado |
+| **Área** | **Propuesta**: Usuario pertenece a Área; Jefe de Área = Usuario responsable del Área |
 
 ---
 
-## Diagrama de clases completo (Mermaid)
+## Diagrama 1: Entidades del dominio (Backend + Propuestas)
 
 ```mermaid
 classDiagram
     direction TB
 
-    %% ============ ENTIDADES EXISTENTES ============
+    %% ============ BACKEND - EXISTENTES (Personal) ============
     class RequerimientoPersonal {
+        <<Backend - Personal>>
         +String id
         +String cargo_categoria_especialidad_id
         +String usuario_id
@@ -43,10 +59,12 @@ classDiagram
     }
 
     class Usuario {
+        <<Backend - Personal>>
         +String id
         +String nombres
         +String apellidos
         +String rol_id
+        +Object cargo_id
         +String dni
         +String usuario
         +String email
@@ -54,6 +72,7 @@ classDiagram
     }
 
     class CargoCategoriaEspecialidad {
+        <<Backend - Personal>>
         +String id
         +String cargo_id
         +String categoria_id
@@ -62,18 +81,21 @@ classDiagram
     }
 
     class Obra {
+        <<Backend - Personal>>
         +String id
         +String nombre
         +String estado
     }
 
     class Empresa {
+        <<Backend - Personal>>
         +String id
         +String razon_social
         +String estado
     }
 
     class EmpleadoCH {
+        <<Backend - Personal>>
         +String id
         +String dni
         +String nombres
@@ -81,11 +103,11 @@ classDiagram
         +String ap_materno
         +String celular
         +String correo_personal
-        +Date fecha_nacimiento
         +Boolean estado
     }
 
     class Empleabilidad {
+        <<Backend - Personal>>
         +String id
         +String empleadoch_id
         +String requerimiento_personal_id
@@ -99,8 +121,17 @@ classDiagram
         +Boolean activo
     }
 
-    %% ============ ENTIDADES PROPUESTAS ============
+    %% ============ PROPUESTAS (a implementar) ============
+    class Area {
+        <<Propuesta>>
+        +String id
+        +String nombre
+        +String codigo
+        +String responsable_id
+    }
+
     class Postulante {
+        <<Propuesta>>
         +String id
         +String nombres
         +String apellidos
@@ -111,6 +142,7 @@ classDiagram
     }
 
     class Postulacion {
+        <<Propuesta>>
         +String id
         +String requerimiento_personal_id
         +String postulante_id
@@ -120,9 +152,9 @@ classDiagram
         +String evaluacion_cv
     }
 
-    %% Entrevista base + subclases
     class Entrevista {
         <<abstract>>
+        <<Propuesta>>
         +String id
         +String postulacion_id
         +String evaluador_id
@@ -134,24 +166,28 @@ classDiagram
     }
 
     class EntrevistaTelefonica {
+        <<Propuesta>>
     }
 
     class EntrevistaJefeArea {
+        <<Propuesta>>
     }
 
     class PruebaAptitudAcademica {
+        <<Propuesta>>
     }
 
     class EntrevistaGerencia {
+        <<Propuesta>>
     }
 
-    %% ============ HERENCIA ENTREVISTAS ============
+    %% Herencia
     Entrevista <|-- EntrevistaTelefonica
     Entrevista <|-- EntrevistaJefeArea
     Entrevista <|-- PruebaAptitudAcademica
     Entrevista <|-- EntrevistaGerencia
 
-    %% ============ RELACIONES ============
+    %% Relaciones existentes
     Usuario "1" --> "*" RequerimientoPersonal : crea
     RequerimientoPersonal "1" --> "1" CargoCategoriaEspecialidad : puesto
     RequerimientoPersonal "1" --> "1" Obra : obra
@@ -159,6 +195,10 @@ classDiagram
     Empleabilidad "1" --> "1" EmpleadoCH : empleado
     Empleabilidad "0..1" --> "1" RequerimientoPersonal : origen
 
+    %% Relaciones propuestas
+    Usuario "*" --> "0..1" Area : pertenece a
+    Area "1" --> "0..1" Usuario : jefe
+    RequerimientoPersonal "1" --> "0..1" Area : área
     RequerimientoPersonal "1" --> "*" Postulacion : recibe
     Postulante "1" --> "*" Postulacion : realiza
     Postulacion "1" --> "*" Entrevista : tiene
@@ -168,7 +208,112 @@ classDiagram
 
 ---
 
-## Diagrama simplificado
+## Diagrama 2: Capas Backend (Personal)
+
+```mermaid
+classDiagram
+    direction TB
+
+    class RequerimientoPersonalResolver {
+        <<GraphQL Resolver>>
+        +listRequerimientosPersonales()
+        +getRequerimientoPersonal()
+        +addRequerimientoPersonal()
+        +updateRequerimientoPersonal()
+        +deleteRequerimientoPersonal()
+    }
+
+    class RequerimientoPersonalService {
+        <<Application Service>>
+        +crearRequerimientoPersonal()
+        +obtenerRequerimientoPersonal()
+        +actualizarRequerimientoPersonal()
+        +listarRequerimientosPersonales()
+        +listarRequerimientosPersonalesPaginado()
+    }
+
+    class IRequerimientoPersonalRepository {
+        <<Interface>>
+        +crear()
+        +actualizar()
+        +buscarPorId()
+        +listar()
+    }
+
+    class MongoRequerimientoPersonalRepository {
+        <<MongoDB>>
+        +crear()
+        +actualizar()
+        +buscarPorId()
+        +listar()
+    }
+
+    class RequerimientoPersonal {
+        <<Entidad>>
+    }
+
+    RequerimientoPersonalResolver --> RequerimientoPersonalService : usa
+    RequerimientoPersonalService --> IRequerimientoPersonalRepository : usa
+    MongoRequerimientoPersonalRepository ..|> IRequerimientoPersonalRepository : implementa
+    RequerimientoPersonalService --> RequerimientoPersonal : trabaja con
+```
+
+---
+
+## Diagrama 3: Capas Frontend (Personal-frontend)
+
+```mermaid
+classDiagram
+    direction TB
+
+    class FormularioRequerimientoPersonal {
+        <<React Component>>
+        +onSubmit()
+        +validar()
+    }
+
+    class VistaRequerimientoPersonal {
+        <<React Component>>
+        +handleCambiarEstado()
+    }
+
+    class KanbanBoardPersonal {
+        <<React Component>>
+        +fetchRequerimientos()
+    }
+
+    class requerimientoPersonalSlice {
+        <<Redux Slice>>
+        +createRequerimientoPersonal
+        +updateRequerimientoPersonal
+        +listRequerimientosPersonalesPaginado
+    }
+
+    class requerimientoPersonalService {
+        <<Service - Apollo>>
+        +createRequerimientoPersonalService()
+        +updateRequerimientoPersonalService()
+        +listRequerimientosPersonalesPaginadoService()
+    }
+
+    class RequerimientoPersonal {
+        <<Interface / Tipo>>
+        +id
+        +estado
+        +vacantes
+        ...
+    }
+
+    FormularioRequerimientoPersonal --> requerimientoPersonalSlice : dispatch
+    VistaRequerimientoPersonal --> requerimientoPersonalSlice : dispatch
+    KanbanBoardPersonal --> requerimientoPersonalSlice : dispatch
+    requerimientoPersonalSlice --> requerimientoPersonalService : llama
+    requerimientoPersonalService --> RequerimientoPersonal : trabaja con
+```
+
+---
+
+## Diagrama 4: Modelo simplificado (relaciones principales)
 
 ```mermaid
 classDiagram
@@ -183,16 +328,11 @@ classDiagram
     Entrevista <|-- PruebaAptitudAcademica
     Entrevista <|-- EntrevistaGerencia
 
-    RequerimientoPersonal : +id
-    RequerimientoPersonal : +estado
-    RequerimientoPersonal : +vacantes
-
-    Postulacion : +id
-    Postulacion : +estado
-    Postulacion : +cv_url
-
-    Entrevista : +resultado
-    Entrevista : +puntaje
+    Usuario "1" --> "*" RequerimientoPersonal : crea
+    RequerimientoPersonal --> CargoCategoriaEspecialidad : puesto
+    RequerimientoPersonal --> Obra : obra
+    Empleabilidad --> EmpleadoCH : empleado
+    Empleabilidad --> RequerimientoPersonal : origen
 ```
 
 ---
@@ -201,37 +341,45 @@ classDiagram
 
 | Estado | Descripción |
 |--------|-------------|
-| **Solicitud personal** | Requerimiento creado, pendiente de evaluación |
-| **Aprobacion de Gerencia** | En revisión por gerencia |
-| **Convocatoria** | Aprobado y publicado; recibe postulaciones |
-| **Solicitud personal Rechazado** | Rechazado, archivado |
-| **Cancelado** | Cancelado |
-| **Suspendido** | Suspendido temporalmente |
+| **En espera** | Requerimiento creado; pendiente de evaluación por RR.HH. |
+| **Aprobado** | RR.HH. aprobó; puede publicarse y recibir postulaciones |
+| **Desaprobado** | Rechazado por RR.HH. durante la evaluación |
+| **Archivado** | Archivado (ej. proceso finalizado o cerrado) |
+
+*Nota: En el backend actual también se usan "Solicitud personal", "Aprobacion de Gerencia", "Convocatoria".*
 
 ---
 
-## Clases del diagrama
+## Estados de Postulacion (propuesta)
 
-| Clase | Estado | Descripción |
-|-------|--------|-------------|
-| **RequerimientoPersonal** | Existe en backend | Solicitud de personal. Estados: Solicitud personal → Aprobación → Convocatoria |
-| **Usuario** | Existe en backend | Actores: Gerencia, RR.HH., Jefe de Área |
-| **CargoCategoriaEspecialidad** | Existe en backend | Puesto/cargo solicitado |
-| **Obra** | Existe en backend | Proyecto u obra asociada |
-| **EmpleadoCH** | Existe en backend | Persona en base de datos |
-| **Empleabilidad** | Existe en backend | Alta como personal activo (contratación manual) |
-| **Postulante** | Propuesta | Persona que envía CV |
-| **Postulacion** | Propuesta | Postulación a un requerimiento en estado Convocatoria. CV = `cv_url` |
-| **Entrevista** | Propuesta (abstracta) | Base para las 4 etapas de evaluación |
-| **EntrevistaTelefonica** | Propuesta | Evaluación telefónica (RR.HH.) |
-| **EntrevistaJefeArea** | Propuesta | Entrevista con jefe de área |
-| **PruebaAptitudAcademica** | Propuesta | Prueba de aptitud (Jefe de Área) |
-| **EntrevistaGerencia** | Propuesta | Entrevista con gerencia (decisión final) |
+| Estado | Descripción |
+|--------|-------------|
+| **Pendiente** | CV recibido, pendiente de evaluación |
+| **Apto** | Aprobado en evaluación de CV |
+| **Inapto** | No cumple requisitos en CV |
+| **En entrevista** | En proceso de entrevistas |
+| **Archivado** | Rechazado en alguna etapa; archivado |
+| **Seleccionado** | Ganador elegido por Gerencia |
+| **Contratado** | Empleabilidad creada; ya es personal activo |
 
 ---
 
-## Preguntas pendientes
+## Resumen: Backend (Personal) vs Propuestas
 
-- **Postulante vs EmpleadoCH**: ¿El Postulante es entidad nueva o se reutiliza EmpleadoCH?
-- **Estados de Postulacion**: ¿Pendiente, Apto, Inapto, Archivado, Seleccionado?
-- **Área / Jefe de Área**: ¿Existe entidad Área o solo Usuario?
+| Clase | Ubicación | Estado |
+|-------|-----------|--------|
+| **RequerimientoPersonal** | Personal/dominio/entidades | Existe |
+| **Usuario** | Personal/dominio/entidades | Existe |
+| **CargoCategoriaEspecialidad** | Personal/dominio/entidades | Existe |
+| **Obra** | Personal/dominio/entidades | Existe |
+| **Empresa** | Personal/dominio/entidades | Existe |
+| **EmpleadoCH** | Personal/dominio/entidades | Existe |
+| **Empleabilidad** | Personal/dominio/entidades | Existe |
+| **RequerimientoPersonalService** | Personal/aplicacion/servicios | Existe |
+| **RequerimientoPersonalResolver** | Personal/infraestructura/graphql | Existe |
+| **requerimientoPersonalSlice** | Personal-frontend/slices | Existe |
+| **requerimientoPersonalService** | Personal-frontend/services | Existe |
+| **Area** | — | Propuesta |
+| **Postulante** | — | Propuesta |
+| **Postulacion** | — | Propuesta |
+| **Entrevista** (y subclases) | — | Propuesta |
